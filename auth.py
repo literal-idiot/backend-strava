@@ -6,6 +6,7 @@ from strava_service import strava_service
 from datetime import datetime, timezone, timedelta
 import re
 import os
+import requests
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -136,13 +137,8 @@ def get_profile():
 def connect_strava():
     """Initiate Strava OAuth connection"""
     try:
-        # Get the current domain for redirect URI
-        host = request.headers.get('Host', 'localhost:5000') # Knock out this line if line 146 works
-        protocol = 'https' if 'replit.app' in host else 'https' # Knock out this line if line 146 works
-        redirect_uri = f"{protocol}://{host}/auth/strava/callback" # Knock out this line if line 146 works
-        
         # Generate authorization URL
-        auth_url = "https://www.strava.com/oauth/authorize?client_id=167433&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=auto&scope=activity:read_all"#strava_service.get_authorization_url(redirect_uri)
+        auth_url = "https://www.strava.com/oauth/authorize?client_id=167433&response_type=code&redirect_uri=https://runmysticgarden-public-1.onrender.com/auth/strava/callback&approval_prompt=auto&scope=activity:read_all"#strava_service.get_authorization_url(redirect_uri)
         print(f"[STRAVA] Generated OAuth URL: {auth_url}") # for debugging
         
         return jsonify({
@@ -158,6 +154,7 @@ def strava_callback():
     """Handle Strava OAuth callback"""
     try:
         code = request.args.get('code')
+        print(f'Code to get tokens {code}')
         error = request.args.get('error')
         
         if error:
@@ -166,29 +163,40 @@ def strava_callback():
         if not code:
             return jsonify({'error': 'No authorization code received'}), 400
         
-        # Get redirect URI
-        host = request.headers.get('Host', 'localhost:5000')
-        protocol = 'https' if 'replit.app' in host else 'http'
-        redirect_uri = f"{protocol}://{host}/auth/strava/callback"
-        
         # Exchange code for tokens
-        token_data = strava_service.exchange_code_for_token(code, redirect_uri)
-        
-        # For now, return the tokens and athlete info
-        # In a real app, you'd want to associate this with a logged-in user
+        '''
+        token_data = strava_service.exchange_code_for_token(
+            client_id='167433',
+            client_secret='15e7b8ff9efa35ec7e4d770d7161b3ae7b52f526',
+            code=code,
+            grant_type='authorization_code',
+            redirect_uri='https://runmysticgarden-public-1.onrender.com/auth/strava/callback'
+        )
+        '''
+        url = 'https://www.strava.com/oauth/token'
+        payload = {
+            'client_id':'167433',
+            'client_secret':'15e7b8ff9efa35ec7e4d770d7161b3ae7b52f526',
+            'code':code,
+            'grant_type':'authorization_code',
+            'redirect_uri': 'https://runmysticgarden-public-1.onrender.com/auth/strava/callback'
+        }
+
+        response = requests.post(url, data=payload)
+        response.raise_for_status()
+        token_data = response.json()
+
+        print(f"[STRAVA] OAuth Success - Access Token: {token_data.get('access_token')}")
+
         return jsonify({
             'message': 'Strava connection successful! Please save your access token and use it with the /auth/strava/link endpoint.',
-            'access_token': token_data['access_token'],
-            'athlete_info': {
-                'id': token_data['athlete']['id'],
-                'firstname': token_data['athlete']['firstname'],
-                'lastname': token_data['athlete']['lastname'],
-                'city': token_data['athlete']['city'],
-                'country': token_data['athlete']['country']
-            },
+            'access_token': token_data.get('access_token'),
+            'refresh_token': token_data.get('refresh_token'),
             'instructions': 'Use POST /auth/strava/link with your JWT token and the access_token to link your account.'
         }), 200
         
+    except requests.exceptions.HTTPError as http_err:
+        return jsonify({'error': f'Strava token exchange failed: {http_err}', 'response': response.text}), 400
     except Exception as e:
         return jsonify({'error': f'Failed to process Strava callback: {str(e)}'}), 500
 
