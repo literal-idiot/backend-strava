@@ -133,7 +133,6 @@ def get_profile():
         return jsonify({'error': f'Failed to get profile: {str(e)}'}), 500
 
 @auth_bp.route('/strava/connect', methods=['GET'])
-@jwt_required()
 def connect_strava():
     """Initiate Strava OAuth connection"""
     try:
