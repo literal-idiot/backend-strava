@@ -139,11 +139,12 @@ def connect_strava():
     try:
         # Get the current domain for redirect URI
         host = request.headers.get('Host', 'localhost:5000')
-        protocol = 'https' if 'replit.app' in host else 'http'
+        protocol = 'https' if 'replit.app' in host else 'https'
         redirect_uri = f"{protocol}://{host}/auth/strava/callback"
         
         # Generate authorization URL
         auth_url = strava_service.get_authorization_url(redirect_uri)
+        print(f"[STRAVA] Generated OAuth URL: {auth_url}") # for debugging
         
         return jsonify({
             'authorization_url': auth_url,
