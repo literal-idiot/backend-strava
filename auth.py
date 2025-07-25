@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, redirect, url_for
+from flask import Blueprint, request, jsonify, redirect, url_for, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db
 from models import User, CoinWallet, Garden, Seed, StravaAccount
@@ -134,12 +134,18 @@ def get_profile():
         return jsonify({'error': f'Failed to get profile: {str(e)}'}), 500
 
 @auth_bp.route('/strava/connect', methods=['GET'])
+@jwt_required()
 def connect_strava():
     """Initiate Strava OAuth connection"""
     try:
+        user_id = get_jwt_identity()
+
+        # Store user_id in session for callback
+        session['strava_user_id'] = user_id
+
         # Generate authorization URL
         auth_url = "https://www.strava.com/oauth/authorize?client_id=167433&response_type=code&redirect_uri=https://runmysticgarden-public-1.onrender.com/auth/strava/callback&approval_prompt=auto&scope=activity:read_all"#strava_service.get_authorization_url(redirect_uri)
-        print(f"[STRAVA] Generated OAuth URL: {auth_url}") # for debugging
+        print(f"[STRAVA] Generated OAuth URL: {auth_url}, User ID: {user_id}") # for debugging
         
         return jsonify({
             'authorization_url': auth_url,
@@ -164,6 +170,15 @@ def strava_callback():
         if not code:
             return jsonify({'error': 'No authorization code received'}), 400
         
+        user_id = session.get('strava_user_id')
+        if not user_id:
+            return redirect('https://runmysticgarden-public-1.onrender.com/error?message=Missing+user+session')
+        
+        # Validate user exists
+        user = User.query.get(user_id)
+        if not user:
+            return redirect(f'https://runmysticgarden-public-1.onrender.com/error?message=Invalid+user+ID')
+        
         # Exchange code for tokens
         '''
         token_data = strava_service.exchange_code_for_token(
@@ -187,7 +202,7 @@ def strava_callback():
         response.raise_for_status()
         token_data = response.json()
 
-        print(f"[STRAVA] OAuth Success - Access Token: {token_data.get('access_token')}")
+        print(f"[STRAVA] OAuth Success - Access Token: {token_data.get('access_token')}, User ID: {user_id}")
 
         user_id = get_jwt_identity()
         strava_account = StravaAccount.query.filter_by(user_id=user_id).first()
@@ -218,6 +233,8 @@ def strava_callback():
             )
             db.session.add(strava_account)
         db.session.commit()
+
+        session.pop('strava_user_id', None)
 
         return jsonify({
             'message': 'Strava connection successful! Your account has now been linked (token and account is stored in database)',
