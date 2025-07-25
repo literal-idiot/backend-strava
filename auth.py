@@ -156,7 +156,6 @@ def connect_strava():
         return jsonify({'error': f'Failed to initiate Strava connection: {str(e)}'}), 500
 
 @auth_bp.route('/strava/callback', methods=['GET'])
-@jwt_required()
 def strava_callback():
     """Handle Strava OAuth callback"""
     try:
