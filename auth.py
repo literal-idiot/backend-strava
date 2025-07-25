@@ -150,6 +150,7 @@ def connect_strava():
         return jsonify({'error': f'Failed to initiate Strava connection: {str(e)}'}), 500
 
 @auth_bp.route('/strava/callback', methods=['GET'])
+#@jwt_required()
 def strava_callback():
     """Handle Strava OAuth callback"""
     try:
@@ -188,11 +189,41 @@ def strava_callback():
 
         print(f"[STRAVA] OAuth Success - Access Token: {token_data.get('access_token')}")
 
+        user_id = get_jwt_identity()
+        strava_account = StravaAccount.query.filter_by(user_id=user_id).first()
+        if strava_account:
+            strava_account.access_token = token_data['access_token']
+            strava_account.refresh_token = token_data['refresh_token']
+            strava_account.expires_at = datetime.fromtimestamp(token_data['expires_at'], timezone.utc)
+            strava_account.strava_athlete_id = token_data['athlete']['id']
+            strava_account.athlete_firstname = token_data['athlete'].get('firstname')
+            strava_account.athlete_lastname = token_data['athlete'].get('lastname')
+            strava_account.athlete_city = token_data['athlete'].get('city')
+            strava_account.athlete_country = token_data['athlete'].get('country')
+            strava_account.athlete_profile_picture = token_data['athlete'].get('profile')
+            strava_account.is_active = True
+        else:
+            strava_account = StravaAccount(
+                user_id=user_id,
+                strava_athlete_id=token_data['athlete']['id'],
+                access_token=token_data['access_token'],
+                refresh_token=token_data['refresh_token'],
+                expires_at=datetime.fromtimestamp(token_data['expires_at'], timezone.utc),
+                athlete_firstname=token_data['athlete'].get('firstname'),
+                athlete_lastname=token_data['athlete'].get('lastname'),
+                athlete_city=token_data['athlete'].get('city'),
+                athlete_country=token_data['athlete'].get('country'),
+                athlete_profile_picture=token_data['athlete'].get('profile'),
+                is_active=True
+            )
+            db.session.add(strava_account)
+        db.session.commit()
+
         return jsonify({
-            'message': 'Strava connection successful! Please save your access token and use it with the /auth/strava/link endpoint.',
+            'message': 'Strava connection successful! Your account has now been linked (token and account is stored in database)',
             'access_token': token_data.get('access_token'),
             'refresh_token': token_data.get('refresh_token'),
-            'instructions': 'Use POST /auth/strava/link with your JWT token and the access_token to link your account.'
+            'instructions': 'Use /strava/activites endpoint to access activities / Navigate back to the app to sync your activities.'
         }), 200
         
     except requests.exceptions.HTTPError as http_err:
@@ -200,6 +231,59 @@ def strava_callback():
     except Exception as e:
         return jsonify({'error': f'Failed to process Strava callback: {str(e)}'}), 500
 
+def refresh_strava_token(strava_account):
+    if not strava_account.is_token_expired():
+        return strava_account.access_token
+
+    url = 'https://www.strava.com/oauth/token'
+    payload = {
+        'client_id': '167433',
+        'client_secret': '15e7b8ff9efa35ec7e4d770d7161b3ae7b52f526',
+        'grant_type': 'refresh_token',
+        'refresh_token': strava_account.refresh_token
+    }
+
+    try:
+        response = requests.post(url, data=payload)
+        response.raise_for_status()
+        token_data = response.json()
+
+        strava_account.access_token = token_data['access_token']
+        strava_account.refresh_token = token_data['refresh_token']
+        strava_account.expires_at = datetime.fromtimestamp(token_data['expires_at'], timezone.utc)
+        db.session.commit()
+
+        print(f"[STRAVA] Token refreshed - New Access Token: {token_data['access_token']}")
+        return token_data['access_token']
+    except requests.exceptions.HTTPError as http_err:
+        print(f"[STRAVA] Token refresh failed: {http_err}")
+        raise
+
+@auth_bp.route('/strava/activities', methods=['GET'])
+#@jwt_required()
+def get_strava_activities():
+    try:
+        user_id = get_jwt_identity()
+        strava_account = StravaAccount.query.filter_by(user_id=user_id, is_active=True).first()
+        if not strava_account:
+            return jsonify({'error': 'Strava account not linked'}), 400
+
+        access_token = refresh_strava_token(strava_account)
+
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get('https://www.strava.com/api/v3/athlete/activities', headers=headers)
+        response.raise_for_status()
+        activities = response.json()
+
+        strava_account.last_sync = datetime.now(timezone.utc)
+        db.session.commit()
+
+        return jsonify({'activities': activities}), 200
+    except requests.exceptions.HTTPError as http_err:
+        return jsonify({'error': f'Strava API request failed: {http_err}'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch activities: {str(e)}'}), 500
+'''
 @auth_bp.route('/strava/link', methods=['POST'])
 @jwt_required()
 def link_strava_account():
@@ -279,7 +363,8 @@ def link_strava_account():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to link Strava account: {str(e)}'}), 500
-
+'''
+        
 @auth_bp.route('/strava/disconnect', methods=['POST'])
 @jwt_required()
 def disconnect_strava():
