@@ -142,7 +142,7 @@ def connect_strava():
         user_id = get_jwt_identity()
 
        # Create a short-lived state token
-        state_token = create_access_token(identity=user_id, expires_delta=False)  # Optional: Add expiry
+        state_token = create_access_token(identity=str(user_id), expires_delta=False)  # Optional: Add expiry
 
         params = {
             'client_id': '167433',
