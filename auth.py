@@ -140,9 +140,11 @@ def connect_strava():
     """Initiate Strava OAuth connection"""
     try:
         user_id = get_jwt_identity()
+        user_id_str = str(user_id)
+        print(f"[STRAVA] User ID: {user_id_str}, Type: {type(user_id_str)}")  # Debug
 
        # Create a short-lived state token
-        state_token = create_access_token(identity=str(user_id), expires_delta=False)  # Optional: Add expiry
+        state_token = create_access_token(identity=user_id_str, expires_delta=False)  # Optional: Add expiry
 
         params = {
             'client_id': '167433',
@@ -155,7 +157,7 @@ def connect_strava():
 
         # Generate authorization URL
         auth_url = f"https://www.strava.com/oauth/authorize?{urlencode(params)}"
-        print(f"[STRAVA] Generated OAuth URL: {auth_url}, User ID: {user_id}") # for debugging
+        print(f"[STRAVA] Generated OAuth URL: {auth_url}") # for debugging
         
         return jsonify({
             'authorization_url': auth_url,
