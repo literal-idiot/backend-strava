@@ -265,6 +265,7 @@ def strava_callback():
     except Exception as e:
         return jsonify({'error': f'Failed to process Strava callback: {str(e)}'}), 500
 
+'''
 def refresh_strava_token(strava_account):
     if not strava_account.is_token_expired():
         return strava_account.access_token
@@ -285,6 +286,38 @@ def refresh_strava_token(strava_account):
         strava_account.access_token = token_data['access_token']
         strava_account.refresh_token = token_data['refresh_token']
         strava_account.expires_at = datetime.fromtimestamp(token_data['expires_at'], timezone.utc)
+        db.session.commit()
+
+        print(f"[STRAVA] Token refreshed - New Access Token: {token_data['access_token']}")
+        return token_data['access_token']
+    except requests.exceptions.HTTPError as http_err:
+        print(f"[STRAVA] Token refresh failed: {http_err}")
+        raise
+'''
+def refresh_strava_token(strava_account):
+    try:
+        # Use offset-naive datetime to match expires_at
+        expiry_threshold = datetime.now() + timedelta(seconds=3600)
+        if strava_account.expires_at > expiry_threshold:
+            print(f"[STRAVA] Token still valid until {strava_account.expires_at}")
+            return strava_account.access_token
+
+        print(f"[STRAVA] Refreshing token for athlete {strava_account.strava_athlete_id}")
+        url = 'https://www.strava.com/oauth/token'
+        payload = {
+            'client_id': os.getenv('STRAVA_CLIENT_ID', '167433'),
+            'client_secret': os.getenv('STRAVA_CLIENT_SECRET', '15e7b8ff9efa35ec7e4d770d7161b3ae7b52f526'),
+            'grant_type': 'refresh_token',
+            'refresh_token': strava_account.refresh_token
+        }
+
+        response = requests.post(url, data=payload)
+        response.raise_for_status()
+        token_data = response.json()
+
+        strava_account.access_token = token_data['access_token']
+        strava_account.refresh_token = token_data['refresh_token']
+        strava_account.expires_at = datetime.fromtimestamp(token_data['expires_at'])
         db.session.commit()
 
         print(f"[STRAVA] Token refreshed - New Access Token: {token_data['access_token']}")
