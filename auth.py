@@ -294,7 +294,7 @@ def refresh_strava_token(strava_account):
         raise
 
 @auth_bp.route('/strava/activities', methods=['GET'])
-#@jwt_required()
+@jwt_required()
 def get_strava_activities():
     try:
         user_id = get_jwt_identity()
