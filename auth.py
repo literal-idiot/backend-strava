@@ -197,15 +197,6 @@ def strava_callback():
             return redirect(f'https://runmysticgarden-public-1.onrender.com/error?message=Invalid+user+ID')
         
         # Exchange code for tokens
-        '''
-        token_data = strava_service.exchange_code_for_token(
-            client_id='167433',
-            client_secret='15e7b8ff9efa35ec7e4d770d7161b3ae7b52f526',
-            code=code,
-            grant_type='authorization_code',
-            redirect_uri='https://runmysticgarden-public-1.onrender.com/auth/strava/callback'
-        )
-        '''
         url = 'https://www.strava.com/oauth/token'
         payload = {
             'client_id':'167433',
@@ -265,35 +256,6 @@ def strava_callback():
     except Exception as e:
         return jsonify({'error': f'Failed to process Strava callback: {str(e)}'}), 500
 
-'''
-def refresh_strava_token(strava_account):
-    if not strava_account.is_token_expired():
-        return strava_account.access_token
-
-    url = 'https://www.strava.com/oauth/token'
-    payload = {
-        'client_id': '167433',
-        'client_secret': '15e7b8ff9efa35ec7e4d770d7161b3ae7b52f526',
-        'grant_type': 'refresh_token',
-        'refresh_token': strava_account.refresh_token
-    }
-
-    try:
-        response = requests.post(url, data=payload)
-        response.raise_for_status()
-        token_data = response.json()
-
-        strava_account.access_token = token_data['access_token']
-        strava_account.refresh_token = token_data['refresh_token']
-        strava_account.expires_at = datetime.fromtimestamp(token_data['expires_at'], timezone.utc)
-        db.session.commit()
-
-        print(f"[STRAVA] Token refreshed - New Access Token: {token_data['access_token']}")
-        return token_data['access_token']
-    except requests.exceptions.HTTPError as http_err:
-        print(f"[STRAVA] Token refresh failed: {http_err}")
-        raise
-'''
 def refresh_strava_token(strava_account):
     try:
         # Use offset-naive datetime to match expires_at
@@ -350,88 +312,7 @@ def get_strava_activities():
         return jsonify({'error': f'Strava API request failed: {http_err}'}), 400
     except Exception as e:
         return jsonify({'error': f'Failed to fetch activities: {str(e)}'}), 500
-'''
-@auth_bp.route('/strava/link', methods=['POST'])
-@jwt_required()
-def link_strava_account():
-    """Link Strava account to user profile"""
-    try:
-        user_id = get_jwt_identity()
-        data = request.get_json()
-        
-        if not data or 'access_token' not in data:
-            return jsonify({'error': 'Access token is required'}), 400
-        
-        access_token = data['access_token']
-        
-        # Use the access token to get athlete info - for simplicity, we'll use the token directly
-        # In a real implementation, you'd get the full token data from the callback
-        # For now, we'll create a placeholder for the missing fields
-        try:
-            from stravalib.client import Client
-            client = Client(access_token=access_token)
-            athlete = client.get_athlete()
-        except Exception as e:
-            return jsonify({'error': f'Invalid access token: {str(e)}'}), 400
-        
-        # Check if this Strava account is already linked to another user
-        existing_account = StravaAccount.query.filter_by(
-            strava_athlete_id=athlete.id,
-            is_active=True
-        ).first()
-        
-        if existing_account and existing_account.user_id != user_id:
-            return jsonify({'error': 'This Strava account is already linked to another user'}), 409
-        
-        # Check if user already has a Strava account linked
-        user_strava_account = StravaAccount.query.filter_by(
-            user_id=user_id,
-            is_active=True
-        ).first()
-        
-        if user_strava_account:
-            # Update existing account
-            user_strava_account.strava_athlete_id = athlete.id
-            user_strava_account.access_token = access_token
-            user_strava_account.refresh_token = 'placeholder_refresh_token'  # Will be updated via full OAuth flow
-            user_strava_account.expires_at = datetime.now(timezone.utc) + timedelta(hours=6)  # Strava tokens expire in 6 hours
-            user_strava_account.athlete_firstname = athlete.firstname
-            user_strava_account.athlete_lastname = athlete.lastname
-            user_strava_account.athlete_city = athlete.city
-            user_strava_account.athlete_country = athlete.country
-            user_strava_account.athlete_profile_picture = str(athlete.profile) if athlete.profile else None
-            user_strava_account.connected_at = datetime.now(timezone.utc)
-            
-            message = 'Strava account updated successfully'
-        else:
-            # Create new account link
-            user_strava_account = StravaAccount()
-            user_strava_account.user_id = user_id
-            user_strava_account.strava_athlete_id = athlete.id
-            user_strava_account.access_token = access_token
-            user_strava_account.refresh_token = 'placeholder_refresh_token'  # Will be updated via full OAuth flow
-            user_strava_account.expires_at = datetime.now(timezone.utc) + timedelta(hours=6)  # Strava tokens expire in 6 hours
-            user_strava_account.athlete_firstname = athlete.firstname
-            user_strava_account.athlete_lastname = athlete.lastname
-            user_strava_account.athlete_city = athlete.city
-            user_strava_account.athlete_country = athlete.country
-            user_strava_account.athlete_profile_picture = str(athlete.profile) if athlete.profile else None
-            
-            db.session.add(user_strava_account)
-            message = 'Strava account linked successfully'
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': message,
-            'strava_account': user_strava_account.to_dict()
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': f'Failed to link Strava account: {str(e)}'}), 500
-'''
-        
+    
 @auth_bp.route('/strava/disconnect', methods=['POST'])
 @jwt_required()
 def disconnect_strava():
