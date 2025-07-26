@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, redirect, url_for, session
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, decode_token
 from app import db
 from models import User, CoinWallet, Garden, Seed, StravaAccount
 from strava_service import strava_service
@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 import re
 import os
 import requests
+from urllib.parse import urlencode
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -71,7 +72,7 @@ def register():
         db.session.commit()
         
         # Create access token
-        access_token = create_access_token(identity=str(user.id))
+        access_token = create_access_token(identity=user.id)
         
         return jsonify({
             'message': 'User registered successfully',
@@ -107,7 +108,7 @@ def login():
             return jsonify({'error': 'Account is deactivated'}), 401
         
         # Create access token
-        access_token = create_access_token(identity=str(user.id))
+        access_token = create_access_token(identity=user.id)
         
         return jsonify({
             'message': 'Login successful',
@@ -140,11 +141,20 @@ def connect_strava():
     try:
         user_id = get_jwt_identity()
 
-        # Store user_id in session for callback
-        session['strava_user_id'] = user_id
+       # Create a short-lived state token
+        state_token = create_access_token(identity=user_id, expires_delta=False)  # Optional: Add expiry
+
+        params = {
+            'client_id': '167433',
+            'response_type': 'code',
+            'redirect_uri': 'https://runmysticgarden-public-1.onrender.com/auth/strava/callback',
+            'approval_prompt': 'auto',
+            'scope': 'activity:read_all',
+            'state': state_token
+        }
 
         # Generate authorization URL
-        auth_url = "https://www.strava.com/oauth/authorize?client_id=167433&response_type=code&redirect_uri=https://runmysticgarden-public-1.onrender.com/auth/strava/callback&approval_prompt=auto&scope=activity:read_all"#strava_service.get_authorization_url(redirect_uri)
+        auth_url = f"https://www.strava.com/oauth/authorize?{urlencode(params)}"
         print(f"[STRAVA] Generated OAuth URL: {auth_url}, User ID: {user_id}") # for debugging
         
         return jsonify({
@@ -162,6 +172,7 @@ def strava_callback():
         code = request.args.get('code')
         print(f'Code to get tokens {code}')
         error = request.args.get('error')
+        state_token = request.args.get('state')
         
         if error:
             return jsonify({'error': f'Strava authorization failed: {error}'}), 400
@@ -169,7 +180,12 @@ def strava_callback():
         if not code:
             return jsonify({'error': 'No authorization code received'}), 400
         
-        user_id = session.get('strava_user_id')
+        # Decode JWT to extract user_id
+        decoded = decode_token(state_token)
+        user_id = decoded.get('sub')  # 'sub' is standard for user identity
+        
+        user = User.query.get(user_id)
+
         if not user_id:
             return redirect('https://runmysticgarden-public-1.onrender.com/error?message=Missing+user+session')
         
@@ -203,7 +219,7 @@ def strava_callback():
 
         print(f"[STRAVA] OAuth Success - Access Token: {token_data.get('access_token')}, User ID: {user_id}")
 
-        user_id = get_jwt_identity()
+        # user_id = get_jwt_identity()
         strava_account = StravaAccount.query.filter_by(user_id=user_id).first()
         if strava_account:
             strava_account.access_token = token_data['access_token']
