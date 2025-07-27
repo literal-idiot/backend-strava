@@ -313,7 +313,7 @@ def get_strava_activities():
         return jsonify({'error': f'Failed to fetch activities: {str(e)}'}), 500
 '''
 
-@auth_bp.route('/strava/activities', methods=['GET'])
+@auth_bp.route('/strava/activities', methods=['POST'])
 @jwt_required()
 def get_strava_activities():
     try:
@@ -322,18 +322,22 @@ def get_strava_activities():
         if not strava_account:
             return jsonify({'error': 'Strava account not linked'}), 400
 
+        # Get optional 'days_back' from request body, default to 7
+        data = request.get_json() or {}
+        days_back = int(data.get('days_back', 7))
+
         access_token = refresh_strava_token(strava_account)
 
-        # Optional days_back param (default to 7 days if not provided)
-        days_back = request.args.get('days_back', default=7, type=int)
-        start_date = datetime.now(timezone.utc) - timedelta(days=days_back)
-
         headers = {'Authorization': f'Bearer {access_token}'}
-        params = {
-            'after': int(start_date.timestamp())  # Strava expects UNIX timestamp
-        }
+        
+        # Filter by date (using `after` parameter in epoch time)
+        after_timestamp = int((datetime.now(timezone.utc) - timedelta(days=days_back)).timestamp())
 
-        response = requests.get('https://www.strava.com/api/v3/athlete/activities', headers=headers, params=params)
+        response = requests.get(
+            'https://www.strava.com/api/v3/athlete/activities',
+            headers=headers,
+            params={'after': after_timestamp}
+        )
         response.raise_for_status()
         activities = response.json()
 
@@ -341,7 +345,6 @@ def get_strava_activities():
         db.session.commit()
 
         return jsonify({'activities': activities}), 200
-
     except requests.exceptions.HTTPError as http_err:
         return jsonify({'error': f'Strava API request failed: {http_err}'}), 400
     except Exception as e:
