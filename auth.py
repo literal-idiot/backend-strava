@@ -258,9 +258,7 @@ def strava_callback():
 
 def refresh_strava_token(strava_account):
     try:
-        # Use offset-naive datetime to match expires_at
-        expiry_threshold = datetime.now() + timedelta(seconds=3600)
-        if strava_account.expires_at > expiry_threshold:
+        if not strava_account.is_token_expired():
             print(f"[STRAVA] Token still valid until {strava_account.expires_at}")
             return strava_account.access_token
 
