@@ -192,14 +192,14 @@ class StravaAccount(db.Model):
     strava_athlete_id = db.Column(db.BigInteger, unique=True, nullable=False)
     access_token = db.Column(db.String(500), nullable=False)
     refresh_token = db.Column(db.String(500), nullable=False)
-    expires_at = db.Column(db.DateTime, nullable=False)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)  # Add timezone support
     athlete_firstname = db.Column(db.String(100))
     athlete_lastname = db.Column(db.String(100))
     athlete_city = db.Column(db.String(100))
     athlete_country = db.Column(db.String(100))
     athlete_profile_picture = db.Column(db.String(500))
-    connected_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    last_sync = db.Column(db.DateTime)
+    connected_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_sync = db.Column(db.DateTime(timezone=True))  # Add timezone support
     is_active = db.Column(db.Boolean, default=True)
     
     # Relationship
