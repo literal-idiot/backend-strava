@@ -5,10 +5,11 @@ from models import User, Run, CoinWallet, Seed, Plant, Garden, IntensityLevel, P
 from utils import calculate_coins_for_run, create_default_seeds
 from strava_service import strava_service
 from datetime import datetime, timezone
+import requests
 
 api_bp = Blueprint('api', __name__)
 
-@api_bp.route('/runs', methods=['POST'])
+'''@api_bp.route('/runs', methods=['POST'])
 @jwt_required()
 def log_run():
     try:
@@ -83,6 +84,139 @@ def log_run():
             # Water all plants in the garden
             for plant in garden.plants:
                 plant.water(distance_km, intensity_enum)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Run logged successfully',
+            'run': run.to_dict(),
+            'coins_earned': coins_earned,
+            'total_coins': wallet.balance
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to log run: {str(e)}'}), 500'''
+@api_bp.route('/runs', methods=['POST'])
+@jwt_required()
+def log_run():
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        source = data.get('source', 'manual')  # Default to manual
+        
+        if source == 'strava':
+            activity_id = data.get('activity_id')
+            if not activity_id:
+                return jsonify({'error': 'Activity ID required for Strava run'}), 400
+            
+            strava_account = StravaAccount.query.filter_by(user_id=user_id).first()
+            if not strava_account:
+                return jsonify({'error': 'Strava account not linked'}), 401
+            
+            try:
+                response = requests.get(
+                    f'https://www.strava.com/api/v3/activities/{activity_id}',
+                    headers={'Authorization': f'Bearer {strava_account.access_token}'}
+                )
+                response.raise_for_status()
+                activity = response.json()
+            except requests.RequestException as e:
+                return jsonify({'error': f'Failed to fetch Strava activity: {str(e)}'}), 500
+            
+            distance_km = activity['distance'] / 1000
+            duration_minutes = round(activity['moving_time'] / 60)
+            
+            if distance_km <= 0 or duration_minutes <= 0:
+                return jsonify({'error': 'Strava activity has invalid distance or duration'}), 400
+            if distance_km > 200:
+                return jsonify({'error': 'Distance seems unrealistic (max 200km)'}), 400
+            if duration_minutes > 1440:
+                return jsonify({'error': 'Duration seems unrealistic (max 24 hours)'}), 400
+            
+            heartrate = activity.get('average_heartrate')
+            intensity_enum = None
+            if heartrate:
+                if heartrate < 120:
+                    intensity_enum = IntensityLevel.LOW
+                elif heartrate < 150:
+                    intensity_enum = IntensityLevel.MODERATE
+                elif heartrate < 180:
+                    intensity_enum = IntensityLevel.HIGH
+                else:
+                    intensity_enum = IntensityLevel.EXTREME
+            
+            run = Run(
+                user_id=user_id,
+                distance_km=distance_km,
+                duration_minutes=duration_minutes,
+                intensity=intensity_enum,
+                average_cadence=activity.get('average_cadence'),
+                average_speed=activity.get('average_speed'),
+                average_heartrate=activity.get('average_heartrate'),
+                total_elevation_gain=activity.get('total_elevation_gain'),
+                name=activity.get('name'),
+                kudos_count=activity.get('kudos_count', 0),
+                elapsed_time=activity.get('elapsed_time')
+            )
+        else:
+            distance_km = data.get('distance_km')
+            duration_minutes = data.get('duration_minutes')
+            intensity = data.get('intensity', 'moderate')
+            
+            if not distance_km or not duration_minutes:
+                return jsonify({'error': 'Distance and duration are required'}), 400
+            
+            try:
+                distance_km = float(distance_km)
+                duration_minutes = int(duration_minutes)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Invalid distance or duration format'}), 400
+            
+            if distance_km <= 0 or duration_minutes <= 0:
+                return jsonify({'error': 'Distance and duration must be positive'}), 400
+            
+            if distance_km > 200:
+                return jsonify({'error': 'Distance seems unrealistic (max 200km)'}), 400
+            
+            if duration_minutes > 1440:
+                return jsonify({'error': 'Duration seems unrealistic (max 24 hours)'}), 400
+            
+            try:
+                intensity_enum = IntensityLevel(intensity.lower()) if intensity else None
+            except ValueError:
+                return jsonify({'error': 'Invalid intensity level. Use: low, moderate, high, extreme'}), 400
+            
+            run = Run(
+                user_id=user_id,
+                distance_km=distance_km,
+                duration_minutes=duration_minutes,
+                intensity=intensity_enum
+            )
+        
+        run.pace_min_per_km = run.duration_minutes / run.distance_km if run.distance_km and run.duration_minutes else None
+        coins_earned = calculate_coins_for_run(run.distance_km, run.intensity or IntensityLevel.MODERATE)
+        run.coins_earned = coins_earned
+        
+        db.session.add(run)
+        
+        wallet = CoinWallet.query.filter_by(user_id=user_id).first()
+        if not wallet:
+            wallet = CoinWallet(user_id=user_id)
+            db.session.add(wallet)
+        
+        wallet.add_coins(coins_earned)
+        
+        garden = Garden.query.filter_by(user_id=user_id).first()
+        if garden:
+            experience_points = int(run.distance_km * 10)
+            garden.add_experience(experience_points)
+            for plant in garden.plants:
+                plant.water(run.distance_km, run.intensity or IntensityLevel.MODERATE)
         
         db.session.commit()
         
