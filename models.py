@@ -55,7 +55,7 @@ class Run(db.Model):
     coins_earned = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     # New strava fields
-    strava_activity_id = db.Column(db.Integer(50), nullable=True, unique=True)
+    strava_activity_id = db.Column(db.Integer, nullable=True, unique=True)
     average_cadence = db.Column(db.Float, nullable=True)  # Steps per minute (from Strava: average_cadence)
     average_speed = db.Column(db.Float, nullable=True) # km/hour i think
     average_heartrate = db.Column(db.Float, nullable=True)
