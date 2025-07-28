@@ -51,9 +51,18 @@ class Run(db.Model):
     distance_km = db.Column(db.Float, nullable=False)  # Distance in kilometers
     duration_minutes = db.Column(db.Integer, nullable=False)  # Duration in minutes
     intensity = db.Column(db.Enum(IntensityLevel), nullable=False)
-    pace_min_per_km = db.Column(db.Float)  # Calculated pace (minutes per km)
+    pace_min_per_km = db.Column(db.Float, nullable=False)  # Calculated pace (minutes per km)
     coins_earned = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    # New strava fields
+    strava_activity_id = db.Column(db.Integer(50), nullable=True, unique=True)
+    average_cadence = db.Column(db.Float, nullable=True)  # Steps per minute (from Strava: average_cadence)
+    average_speed = db.Column(db.Float, nullable=True) # km/hour i think
+    average_heartrate = db.Column(db.Float, nullable=True)
+    total_elevation_gain = db.Column(db.Float, nullable=True)  # Elevation gain in meters (from Strava: total_elevation_gain)
+    name = db.Column(db.String(255), nullable=True)  # Run name (from Strava: name)
+    kudos_count = db.Column(db.Integer, nullable=True, default=0)  # Kudos received (from Strava: kudos_count)
+    elapsed_time = db.Column(db.Integer, nullable=True)  # Total elapsed time in seconds (from Strava: elapsed_time)
     
     def __post_init__(self):
         # Calculate pace
@@ -66,10 +75,18 @@ class Run(db.Model):
             'user_id': self.user_id,
             'distance_km': self.distance_km,
             'duration_minutes': self.duration_minutes,
-            'intensity': self.intensity.value,
+            'intensity': self.intensity.value if self.intensity else None,
             'pace_min_per_km': self.pace_min_per_km,
             'coins_earned': self.coins_earned,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'strava_activity_id': self.strava_activity_id,
+            'average_cadence': self.average_cadence,
+            'average_speed': self.average_speed,
+            'average_heartrate': self.average_heartrate,
+            'total_elevation_gain': self.total_elevation_gain,
+            'name': self.name,
+            'kudos_count': self.kudos_count,
+            'elapsed_time': self.elapsed_time
         }
 
 class CoinWallet(db.Model):

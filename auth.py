@@ -286,32 +286,6 @@ def refresh_strava_token(strava_account):
         print(f"[STRAVA] Token refresh failed: {http_err}")
         raise
 
-'''
-@auth_bp.route('/strava/activities', methods=['GET'])
-@jwt_required()
-def get_strava_activities():
-    try:
-        user_id = get_jwt_identity()
-        strava_account = StravaAccount.query.filter_by(user_id=user_id, is_active=True).first()
-        if not strava_account:
-            return jsonify({'error': 'Strava account not linked'}), 400
-
-        access_token = refresh_strava_token(strava_account)
-
-        headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get('https://www.strava.com/api/v3/athlete/activities', headers=headers)
-        response.raise_for_status()
-        activities = response.json()
-
-        strava_account.last_sync = datetime.now(timezone.utc)
-        db.session.commit()
-
-        return jsonify({'activities': activities}), 200
-    except requests.exceptions.HTTPError as http_err:
-        return jsonify({'error': f'Strava API request failed: {http_err}'}), 400
-    except Exception as e:
-        return jsonify({'error': f'Failed to fetch activities: {str(e)}'}), 500
-'''
 
 @auth_bp.route('/strava/activities', methods=['POST'])
 @jwt_required()
@@ -341,10 +315,13 @@ def get_strava_activities():
         response.raise_for_status()
         activities = response.json()
 
+        # Filter to only running activities
+        run_activities = [act for act in activities if act.get('sport_type') == 'Run']
+
         strava_account.last_sync = datetime.now(timezone.utc)
         db.session.commit()
 
-        return jsonify({'activities': activities}), 200
+        return jsonify({'activities': run_activities}), 200
     except requests.exceptions.HTTPError as http_err:
         return jsonify({'error': f'Strava API request failed: {http_err}'}), 400
     except Exception as e:
