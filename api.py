@@ -55,7 +55,7 @@ def log_run():
                 return jsonify({'error': 'Duration seems unrealistic (max 24 hours)'}), 400
             
             heartrate = activity.get('average_heartrate')
-            intensity_enum = None
+            intensity_enum = IntensityLevel.MODERATE
             if heartrate:
                 if heartrate < 120:
                     intensity_enum = IntensityLevel.LOW
