@@ -71,6 +71,7 @@ def log_run():
                 distance_km=distance_km,
                 duration_minutes=duration_minutes,
                 intensity=intensity_enum,
+                strava_activity_id=activity_id,
                 average_cadence=activity.get('average_cadence'),
                 average_speed=activity.get('average_speed'),
                 average_heartrate=activity.get('average_heartrate'),
