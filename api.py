@@ -117,6 +117,10 @@ def log_run():
             strava_account = StravaAccount.query.filter_by(user_id=user_id).first()
             if not strava_account:
                 return jsonify({'error': 'Strava account not linked'}), 401
+
+            # Check for duplicate Strava activity
+            if Run.query.filter_by(strava_activity_id=activity_id).first():
+                return jsonify({'error': 'This Strava activity has already been uploaded'}), 400
             
             try:
                 response = requests.get(
