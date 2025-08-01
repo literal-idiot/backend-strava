@@ -44,7 +44,7 @@ def log_run():
             except requests.RequestException as e:
                 return jsonify({'error': f'Failed to fetch Strava activity: {str(e)}'}), 500
             
-            distance_km = activity['distance'] / 1000
+            distance_km = round(activity['distance'] / 1000, 2)  # Round to 2 decimal places
             duration_minutes = round(activity['moving_time'] / 60)
             
             if distance_km <= 0 or duration_minutes <= 0:
