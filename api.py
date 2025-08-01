@@ -6,6 +6,10 @@ from utils import calculate_coins_for_run, create_default_seeds
 from strava_service import strava_service
 from datetime import datetime, timezone
 import requests
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api', __name__)
 
@@ -15,6 +19,7 @@ def log_run():
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
+        logger.debug(f"Received data: {data}")
         
         if not data:
             return jsonify({'error': 'No data provided'}), 400
