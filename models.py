@@ -49,7 +49,7 @@ class Run(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     distance_km = db.Column(db.Float, nullable=False)  # Distance in kilometers
-    duration_minutes = db.Column(db.Integer, nullable=False)  # Duration in minutes
+    duration_minutes = db.Column(db.Float, nullable=False)  # Duration in minutes
     intensity = db.Column(db.Enum(IntensityLevel), nullable=False)
     pace_min_per_km = db.Column(db.Float, nullable=False)  # Calculated pace (minutes per km)
     coins_earned = db.Column(db.Integer, default=0)
