@@ -115,7 +115,7 @@ def log_run():
                 intensity=intensity_enum
             )
         
-        run.pace_min_per_km = run.duration_minutes / run.distance_km if run.distance_km and run.duration_minutes else None
+        run.pace_min_per_km = round(run.duration_minutes / run.distance_km, 2)
         coins_earned = calculate_coins_for_run(run.distance_km, run.intensity or IntensityLevel.MODERATE)
         run.coins_earned = coins_earned
         
