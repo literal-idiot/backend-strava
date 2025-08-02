@@ -421,8 +421,10 @@ def delete_plant(plant_id):
         plant = db.session.get(Plant, plant_id)
         print(f'Plant id: {plant_id}')
         print(plant.user_id)
-        if not plant or plant.user_id != user_id:
-            return jsonify({"error": "Plant not found or unauthorized"}), 404
+        if plant.user_id != user_id:
+            return jsonify({"error": "Plant not found"}), 403
+        if not plant:
+            return jsonify({"error": "Plant not found"}), 404
 
         db.session.delete(plant)
         db.session.commit()
