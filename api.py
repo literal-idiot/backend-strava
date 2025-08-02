@@ -423,7 +423,7 @@ def delete_plant(plant_id):
         print(plant.user_id)
         if not plant:
             return jsonify({"error": "Plant not found"}), 404
-        if plant.user_id != user_id:
+        if int(plant.user_id) != int(user_id):
             return jsonify({"error": "Plant not authorized"}), 403
 
         db.session.delete(plant)
