@@ -3,6 +3,10 @@ from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func
 import enum
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class IntensityLevel(enum.Enum):
     LOW = "low"
@@ -158,10 +162,10 @@ class Plant(db.Model):
     position_x = db.Column(db.Integer, default=0)  # Garden position
     position_y = db.Column(db.Integer, default=0)  # Garden position
     
-    def water(self, run_distance, run_intensity):
+    def water(self, run):
         """Update plant growth based on running activity"""
         # Base growth from distance
-        growth_boost = run_distance * 2  # 2 points per km
+        growth_boost = run.distance_km * 2  # 2 points per km
         
         # Intensity multiplier
         intensity_multipliers = {
@@ -171,11 +175,56 @@ class Plant(db.Model):
             IntensityLevel.EXTREME: 2.0
         }
         
-        growth_boost *= intensity_multipliers.get(run_intensity, 1.0)
+        growth_boost *= intensity_multipliers.get(run.intensity.value, 1.0)
         
-        # Add to growth progress
-        self.growth_progress = min(100.0, self.growth_progress + growth_boost)
-        self.last_watered = datetime.now(timezone.utc)
+        # Checking for growth requirements
+        requirements = self.seed.growth_requirements
+        failed_requirements = []
+
+        # Check intensity if required
+        if 'min_distance' in requirements:
+            if not run.distance_km or run.distance_km < requirements['min_distance']:
+                failed_requirements.append(f"intensity: {run.distance_km if run.distance_km else 'none'} (needs {requirements['min_distance']})")
+
+        if 'min_time' in requirements:
+            if not run.duration_minutes or run.duration_minutes < requirements['min_time']:
+                failed_requirements.append(f"intensity: {run.duration_minutes if run.duration_minutes else 'none'} (needs {requirements['min_time']})")
+
+        if 'preferred_intensity' in requirements:
+            if not run.intensity or run.intensity.value.lower() != requirements['preferred_intensity']:
+                failed_requirements.append(f"intensity: {run.intensity.value.lower() if run.intensity else 'none'} (needs {requirements['preferred_intensity']})")
+
+        # Check pace if required
+        if 'min_pace_min_per_km' in requirements:
+            if run.pace_min_per_km is None or run.pace_min_per_km > requirements['min_pace_min_per_km']:
+                failed_requirements.append(f"pace: {run.pace_min_per_km} min/km (needs faster than {requirements['min_pace_min_per_km']} min/km)")
+
+        if 'start_time' in requirements:
+            if run.created_at is None or requirements['end_time'] < run.created_at.time() < requirements['start_time']:
+                failed_requirements.append(f"time: {run.created_at} did not occur between {requirements['start_time']} and {requirements['end_time']}")
+
+        # Check elevation gain if required (Strava runs only)
+        if 'min_elevation_gain' in requirements:
+            if not run.strava_activity_id:
+                failed_requirements.append("elevation: not a Strava run")
+            elif run.total_elevation_gain is None or run.total_elevation_gain < requirements['min_elevation_gain']:
+                failed_requirements.append(f"elevation gain: {run.total_elevation_gain or 0} m (needs {requirements['min_elevation_gain']} m)")
+
+        # Check kudos count if required (Strava runs only)
+        if 'min_kudos_count' in requirements:
+            if not run.strava_activity_id:
+                failed_requirements.append("kudos: not a Strava run")
+            elif run.kudos_count is None or run.kudos_count < requirements['min_kudos_count']:
+                failed_requirements.append(f"kudos: {run.kudos_count or 0} (needs {requirements['min_kudos_count']})")
+
+        # If any requirements failed, log and return False
+        if failed_requirements:
+            logger.debug(f"Plant {self.seed.name} not watered: failed {', '.join(failed_requirements)}")
+            print(failed_requirements)
+            return False, failed_requirements
+        else:
+            self.growth_progress = min(100.0, self.growth_progress + growth_boost)
+            self.last_watered = datetime.now(timezone.utc)
         
         # Update stage based on progress
         if self.growth_progress == 100:

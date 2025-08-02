@@ -35,7 +35,6 @@ def create_default_seeds():
             'description': 'A beautiful rose that blooms with magical energy. Requires consistent running to flourish.',
             'cost_coins': 50,
             'growth_requirements': {
-                'min_weekly_distance': 10,
                 'preferred_intensity': 'moderate'
             },
             'rarity': 'common',
@@ -46,7 +45,6 @@ def create_default_seeds():
             'description': 'An energizing herb that thrives on high-intensity workouts.',
             'cost_coins': 75,
             'growth_requirements': {
-                'min_weekly_distance': 15,
                 'preferred_intensity': 'high'
             },
             'rarity': 'common',
@@ -57,8 +55,7 @@ def create_default_seeds():
             'description': 'A mighty oak tree that grows stronger with long-distance runs.',
             'cost_coins': 150,
             'growth_requirements': {
-                'min_weekly_distance': 25,
-                'preferred_intensity': 'low'
+                'min_time': 60
             },
             'rarity': 'rare',
             'plant_type': 'tree'
@@ -68,7 +65,6 @@ def create_default_seeds():
             'description': 'An exotic lotus that responds to bursts of extreme intensity.',
             'cost_coins': 200,
             'growth_requirements': {
-                'min_weekly_distance': 20,
                 'preferred_intensity': 'extreme'
             },
             'rarity': 'rare',
@@ -79,8 +75,7 @@ def create_default_seeds():
             'description': 'A legendary fern that only grows for the most dedicated runners.',
             'cost_coins': 500,
             'growth_requirements': {
-                'min_weekly_distance': 50,
-                'preferred_intensity': 'high'
+                'min_distance': 21.1
             },
             'rarity': 'epic',
             'plant_type': 'fern'
@@ -90,8 +85,7 @@ def create_default_seeds():
             'description': 'Divine bamboo that reaches toward the heavens with every mile you run.',
             'cost_coins': 1000,
             'growth_requirements': {
-                'min_weekly_distance': 100,
-                'preferred_intensity': 'moderate'
+                'min_distance': 42.2
             },
             'rarity': 'legendary',
             'plant_type': 'bamboo'

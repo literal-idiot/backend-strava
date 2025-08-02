@@ -139,7 +139,7 @@ def log_run():
             experience_points = int(run.distance_km * 10)
             garden.add_experience(experience_points)
             for plant in garden.plants:
-                plant.water(run.distance_km, run.intensity or IntensityLevel.MODERATE)
+                plant.water(run)
         
         db.session.commit()
         
