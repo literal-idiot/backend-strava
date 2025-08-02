@@ -416,8 +416,11 @@ def harvest_plant(plant_id):
 def delete_plant(plant_id):
     try:
         user_id = get_jwt_identity()
+        print(user_id)
 
         plant = db.session.get(Plant, plant_id)
+        print(f'Plant id: {plant_id}')
+        print(plant)
         if not plant or plant.user_id != user_id:
             return jsonify({"error": "Plant not found or unauthorized"}), 404
 
