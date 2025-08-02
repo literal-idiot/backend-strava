@@ -185,9 +185,9 @@ class Plant(db.Model):
         elif self.growth_progress >= 70:
             self.stage = PlantStage.SAPLING
         elif self.growth_progress >= 40:
-            self.stage = PlantStage.SEEDLING
-        elif self.growth_progress >= 20:
             self.stage = PlantStage.SPROUT
+        elif self.growth_progress >= 20:
+            self.stage = PlantStage.SEED
     
     def to_dict(self):
         return {

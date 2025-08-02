@@ -573,7 +573,7 @@ def sync_strava_activities():
     try:
         user_id = get_jwt_identity()
         data = request.get_json() or {}
-        days_back = data.get('days_back', 7)
+        days_back = data.get('days_back', 1)
         
         # Check if user has Strava connected
         strava_account = StravaAccount.query.filter_by(user_id=user_id, is_active=True).first()
