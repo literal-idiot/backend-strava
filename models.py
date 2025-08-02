@@ -151,6 +151,7 @@ class Seed(db.Model):
 
 class Plant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Change to false later for production
     garden_id = db.Column(db.Integer, db.ForeignKey('garden.id'), nullable=False)
     seed_id = db.Column(db.Integer, db.ForeignKey('seed.id'), nullable=False)
     name = db.Column(db.String(100))  # Custom name given by user
@@ -241,6 +242,7 @@ class Plant(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'user_id': self.user_id,
             'garden_id': self.garden_id,
             'seed_id': self.seed_id,
             'name': self.name,
