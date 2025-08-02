@@ -370,7 +370,7 @@ def harvest_plant(plant_id):
         user_id = get_jwt_identity()
 
         plant = db.session.get(Plant, plant_id)
-        if not plant or plant.user_id != user_id:
+        if not plant or int(plant.user_id) != int(user_id):
             return jsonify({"error": "Plant not found or not yours"}), 404
 
         if plant.stage != PlantStage.BLOOMING:
