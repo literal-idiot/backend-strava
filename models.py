@@ -151,7 +151,7 @@ class Seed(db.Model):
 
 class Plant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Change to false later for production
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Change to false later for production
     garden_id = db.Column(db.Integer, db.ForeignKey('garden.id'), nullable=False)
     seed_id = db.Column(db.Integer, db.ForeignKey('seed.id'), nullable=False)
     name = db.Column(db.String(100))  # Custom name given by user

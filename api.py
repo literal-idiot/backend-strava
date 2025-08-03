@@ -339,6 +339,7 @@ def plant_seed():
 
         # Plant the seed
         plant = Plant(
+            user_id=user_id,
             garden_id=garden.id,
             seed_id=seed.id,
             position_x=position_x,

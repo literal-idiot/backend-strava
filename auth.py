@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, redirect, url_for, session
+from flask import Blueprint, request, jsonify, redirect, url_for, session, render_template
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, decode_token
 from app import db
 from models import User, CoinWallet, Garden, Seed, StravaAccount
@@ -244,12 +244,7 @@ def strava_callback():
 
         session.pop('strava_user_id', None)
 
-        return jsonify({
-            'message': 'Strava connection successful! Your account has now been linked (token and account is stored in database)',
-            'access_token': token_data.get('access_token'),
-            'refresh_token': token_data.get('refresh_token'),
-            'instructions': 'Use /strava/activites endpoint to access activities / Navigate back to the app to sync your activities.'
-        }), 200
+        return render_template('strava_success.html')
         
     except requests.exceptions.HTTPError as http_err:
         return jsonify({'error': f'Strava token exchange failed: {http_err}', 'response': response.text}), 400
