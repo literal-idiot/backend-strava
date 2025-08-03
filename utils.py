@@ -1,5 +1,6 @@
 from app import db
 from models import Seed, IntensityLevel
+from datetime import time
 
 def calculate_coins_for_run(distance_km, intensity):
     """Calculate coins earned for a run based on distance and intensity"""
@@ -31,64 +32,74 @@ def create_default_seeds():
     """Create default seeds if they don't exist"""
     default_seeds = [
         {
-            'name': 'Mystic Rose',
-            'description': 'A beautiful rose that blooms with magical energy. Requires consistent running to flourish.',
+            'name': 'Sunflower',
+            'description': 'A practical flower. Grows predictably upward, as one does when chasing sunlight. Features a sensible spiral seed arrangement',
             'cost_coins': 50,
             'growth_requirements': {
-                'preferred_intensity': 'moderate'
             },
             'rarity': 'common',
-            'plant_type': 'flower'
+            'plant_type': 'endurance'
         },
         {
-            'name': 'Runner\'s Mint',
-            'description': 'An energizing herb that thrives on high-intensity workouts.',
+            'name': 'Orchid',
+            'description': 'A needy flower. Attractive but needs a lot of maintenence. Reminds me of a certain someone...',
             'cost_coins': 75,
             'growth_requirements': {
                 'preferred_intensity': 'high'
             },
             'rarity': 'common',
-            'plant_type': 'herb'
+            'plant_type': 'effort'
         },
         {
-            'name': 'Endurance Oak',
-            'description': 'A mighty oak tree that grows stronger with long-distance runs.',
+            'name': 'Alpenrose',
+            'description': 'A flower too stubborn to grow at sea level. Clings to mountains like I do for thick thighs',
+            'cost_coins': 150,
+            'growth_requirements': {
+                'min_elevation_gain': 60
+            },
+            'rarity': 'rare',
+            'plant_type': 'climb'
+        },
+        {
+            'name': 'Peony',
+            'description': 'A flower allergic to haste. Takes an eternity to bloom.',
             'cost_coins': 150,
             'growth_requirements': {
                 'min_time': 60
             },
             'rarity': 'rare',
-            'plant_type': 'tree'
+            'plant_type': 'duration'
         },
         {
-            'name': 'Speed Lotus',
-            'description': 'An exotic lotus that responds to bursts of extreme intensity.',
+            'name': 'Cosmos',
+            'description': 'A light and airy flower that blooms hella quick. Gotta go fast.',
             'cost_coins': 200,
             'growth_requirements': {
-                'preferred_intensity': 'extreme'
+                'min_pace_min_per_km': 3
             },
             'rarity': 'rare',
-            'plant_type': 'flower'
+            'plant_type': 'speed'
         },
         {
-            'name': 'Phoenix Fern',
-            'description': 'A legendary fern that only grows for the most dedicated runners.',
+            'name': 'Zinnia',
+            'description': 'A flower that demands your attention, a perfect symbol for Strava clout.',
             'cost_coins': 500,
             'growth_requirements': {
-                'min_distance': 21.1
+                'min_kudos_count': 20
             },
             'rarity': 'epic',
-            'plant_type': 'fern'
+            'plant_type': 'popularity'
         },
         {
-            'name': 'Celestial Bamboo',
-            'description': 'Divine bamboo that reaches toward the heavens with every mile you run.',
+            'name': 'Morning Glory',
+            'description': 'I needed to give myself a reason to wake up early. Only for the legends that show up for morning practice.',
             'cost_coins': 1000,
             'growth_requirements': {
-                'min_distance': 42.2
+                'start_time': time(6, 0),
+                'end_time': time(9,0),
             },
             'rarity': 'legendary',
-            'plant_type': 'bamboo'
+            'plant_type': 'timing'
         }
     ]
     
@@ -97,3 +108,9 @@ def create_default_seeds():
         if not existing_seed:
             seed = Seed(**seed_data)
             db.session.add(seed)
+
+'''
+Future flower ideas
+    - Queen of the Night: elapsed time
+
+'''
