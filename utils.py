@@ -39,7 +39,7 @@ def create_default_seeds():
             },
             'rarity': 'common',
             'plant_type': 'endurance'
-        },
+        },'''
         {
             'name': 'Orchid',
             'description': 'A needy flower. Attractive but needs a lot of maintenence. Reminds me of a certain someone...',
@@ -100,7 +100,7 @@ def create_default_seeds():
             },
             'rarity': 'legendary',
             'plant_type': 'timing'
-        }
+        }'''
     ]
     
     for seed_data in default_seeds:
