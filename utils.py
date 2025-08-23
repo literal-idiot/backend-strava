@@ -36,10 +36,11 @@ def create_default_seeds():
             'description': 'A practical flower. Grows predictably upward, as one does when chasing sunlight. Features a sensible spiral seed arrangement',
             'cost_coins': 50,
             'growth_requirements': {
+                'preferred_intensity': 'medium'
             },
             'rarity': 'common',
             'plant_type': 'endurance'
-        },'''
+        },
         {
             'name': 'Orchid',
             'description': 'A needy flower. Attractive but needs a lot of maintenence. Reminds me of a certain someone...',
@@ -90,17 +91,6 @@ def create_default_seeds():
             'rarity': 'epic',
             'plant_type': 'popularity'
         },
-        {
-            'name': 'Morning Glory',
-            'description': 'I needed to give myself a reason to wake up early. Only for the legends that show up for morning practice.',
-            'cost_coins': 1000,
-            'growth_requirements': {
-                'start_time': time(6, 0),
-                'end_time': time(9,0),
-            },
-            'rarity': 'legendary',
-            'plant_type': 'timing'
-        }'''
     ]
     
     for seed_data in default_seeds:
@@ -112,5 +102,17 @@ def create_default_seeds():
 '''
 Future flower ideas
     - Queen of the Night: elapsed time
+
+        {
+            'name': 'Morning Glory',
+            'description': 'I needed to give myself a reason to wake up early. Only for the legends that show up for morning practice.',
+            'cost_coins': 1000,
+            'growth_requirements': {
+                'start_time': time(6, 0),
+                'end_time': time(9,0),
+            },
+            'rarity': 'legendary',
+            'plant_type': 'timing'
+        }
 
 '''
