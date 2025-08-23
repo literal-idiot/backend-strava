@@ -36,7 +36,7 @@ def create_default_seeds():
             'description': 'A practical flower. Grows predictably upward, as one does when chasing sunlight. Features a sensible spiral seed arrangement',
             'cost_coins': 50,
             'growth_requirements': {
-                'preferred_intensity': 'medium'
+                'preferred_intensity': 'moderate'
             },
             'rarity': 'common',
             'plant_type': 'endurance'
